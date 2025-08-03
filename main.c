@@ -1,4 +1,4 @@
-// Define a biblioteca principal do OpenGL e demais bibliotecas necessárias
+// Includes principais
 #include "freeglut-3.4.0/include/GL/glut.h"
 #include "glu-903/include/GL/glu.h"
 #include <stdio.h>
@@ -6,13 +6,16 @@
 #include <time.h>
 #include <math.h>
 
-// Define constantes para tamanho do mapa, dos tiles, número de inimigos e total de fases
+// Constantes
 #define MAP_SIZE 20
 #define TILE_SIZE 30
 #define NUM_INIMIGOS 3
 #define TOTAL_ROUNDS 3
 
-// Matriz tridimensional que armazena os mapas de cada fase
+// Tipos e variáveis globais
+typedef struct { int x, y; } Inimigo;
+
+// Mapa
 int mapas[TOTAL_ROUNDS][MAP_SIZE][MAP_SIZE] = {
     {
      {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
@@ -82,36 +85,18 @@ int mapas[TOTAL_ROUNDS][MAP_SIZE][MAP_SIZE] = {
     }
 };
 
-// Variáveis para controlar o estado atual do jogo
-int faseAtual = 0;             // Índice da fase atual
-int playerX = 1, playerY = 1;  // Posição do jogador no mapa
-int gameOver = 0;              // Flag de fim de jogo por derrota
-int gameWon = 0;               // Flag de fim de jogo por vitória
-int modoDesenvolvedor = 0;     // Modo desenvolvedor (atravessa paredes)
-
-// Estrutura para representar inimigos
-typedef struct { int x, y; } Inimigo;
-
-// Array com os inimigos
+int faseAtual = 0;
+int playerX = 1, playerY = 1;
+int gameOver = 0;
+int gameWon = 0;
+int modoDesenvolvedor = 0;
 Inimigo inimigos[NUM_INIMIGOS];
 
-// Função para posicionar o jogador no início da fase
-void inicializarPosicoes() {
-    playerX = 1;
-    playerY = 1;
+// Funções utilitárias
+double distancia(int x1, int y1, int x2, int y2) {
+    return sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
 }
 
-// Função que reinicializa a posição dos inimigos aleatoriamente
-void reiniciarInimigos() {
-    for (int i = 0; i < NUM_INIMIGOS; i++) {
-        do {
-            inimigos[i].x = rand() % MAP_SIZE;
-            inimigos[i].y = rand() % MAP_SIZE;
-        } while (mapas[faseAtual][inimigos[i].y][inimigos[i].x] != 0 || (inimigos[i].x == playerX && inimigos[i].y == playerY));
-    }
-}
-
-// Função que verifica se uma posição no mapa é válida para mover
 int podeMover(int x, int y) {
     if (x < 0 || x >= MAP_SIZE || y < 0 || y >= MAP_SIZE)
         return 0;
@@ -121,31 +106,6 @@ int podeMover(int x, int y) {
     return tile == 0 || tile == 5;
 }
 
-// Função para desenhar um quadrado colorido em uma posição específica
-void desenharQuadrado(int x, int y, float r, float g, float b) {
-    glColor3f(r, g, b);
-    glBegin(GL_QUADS);
-        glVertex2i(x * TILE_SIZE, y * TILE_SIZE);
-        glVertex2i((x + 1) * TILE_SIZE, y * TILE_SIZE);
-        glVertex2i((x + 1) * TILE_SIZE, (y + 1) * TILE_SIZE);
-        glVertex2i(x * TILE_SIZE, (y + 1) * TILE_SIZE);
-    glEnd();
-}
-
-
-// Função chamada quando o jogador vence todas as fases
-void vencerJogo() {
-    gameWon = 1;
-    glutPostRedisplay();
-}
-
-// Função chamada quando o jogador perde
-void perderJogo() {
-    gameOver = 1;
-    glutPostRedisplay(); // Força redesenho da tela
-}
-
-// Verifica se algum inimigo colidiu com o jogador
 int verificarColisao() {
     if (modoDesenvolvedor) return 0;
     for (int i = 0; i < NUM_INIMIGOS; i++)
@@ -154,7 +114,32 @@ int verificarColisao() {
     return 0;
 }
 
-// Move o jogador se possível, verifica fim de fase ou colisões
+// Inicializações
+void inicializarPosicoes() {
+    playerX = 1;
+    playerY = 1;
+}
+
+void reiniciarInimigos() {
+    for (int i = 0; i < NUM_INIMIGOS; i++) {
+        do {
+            inimigos[i].x = rand() % MAP_SIZE;
+            inimigos[i].y = rand() % MAP_SIZE;
+        } while (mapas[faseAtual][inimigos[i].y][inimigos[i].x] != 0 || (inimigos[i].x == playerX && inimigos[i].y == playerY));
+    }
+}
+
+// Eventos de jogo
+void perderJogo() {
+    gameOver = 1;
+    glutPostRedisplay();
+}
+
+void vencerJogo() {
+    gameWon = 1;
+    glutPostRedisplay();
+}
+
 void moverJogador(int dx, int dy) {
     if (gameOver || gameWon) return;
 
@@ -181,12 +166,6 @@ void moverJogador(int dx, int dy) {
     glutPostRedisplay();
 }
 
-// Calcula a distância Euclidiana entre duas posições
-double distancia(int x1, int y1, int x2, int y2) {
-    return sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
-}
-
-// Move os inimigos em direção ao jogador, se possível
 void moverInimigos() {
     if (gameOver || gameWon) return;
 
@@ -217,13 +196,17 @@ void moverInimigos() {
     glutPostRedisplay();
 }
 
-// Função de temporização para mover os inimigos em intervalos
-void timer(int v) {
-    moverInimigos();
-    glutTimerFunc(500, timer, 0); // Chama a si mesma novamente após 500ms
+// Rendering
+void desenharQuadrado(int x, int y, float r, float g, float b) {
+    glColor3f(r, g, b);
+    glBegin(GL_QUADS);
+        glVertex2i(x * TILE_SIZE, y * TILE_SIZE);
+        glVertex2i((x + 1) * TILE_SIZE, y * TILE_SIZE);
+        glVertex2i((x + 1) * TILE_SIZE, (y + 1) * TILE_SIZE);
+        glVertex2i(x * TILE_SIZE, (y + 1) * TILE_SIZE);
+    glEnd();
 }
 
-// Escreve texto na tela
 void desenharTexto(float x, float y, const char *texto) {
     glColor3f(1, 0, 0);
     glRasterPos2f(x, y);
@@ -231,7 +214,6 @@ void desenharTexto(float x, float y, const char *texto) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *texto++);
 }
 
-// Função principal de desenho da tela
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -243,20 +225,20 @@ void display() {
         for (int y = 0; y < MAP_SIZE; y++)
             for (int x = 0; x < MAP_SIZE; x++) {
                 int tile = mapas[faseAtual][y][x];
-                if (tile == 1) desenharQuadrado(x, y, 0.2f, 0.2f, 0.2f); // parede
-                else if (tile == 5) desenharQuadrado(x, y, 0, 1, 0);    // saída
+                if (tile == 1) desenharQuadrado(x, y, 0.2f, 0.2f, 0.2f);
+                else if (tile == 5) desenharQuadrado(x, y, 0, 1, 0);
             }
 
-        desenharQuadrado(playerX, playerY, modoDesenvolvedor ? 0.6f : 0, 0, modoDesenvolvedor ? 0.6f : 1); // jogador
+        desenharQuadrado(playerX, playerY, modoDesenvolvedor ? 0.6f : 0, 0, modoDesenvolvedor ? 0.6f : 1);
 
         for (int i = 0; i < NUM_INIMIGOS; i++)
-            desenharQuadrado(inimigos[i].x, inimigos[i].y, 1, 0, 0); // inimigos
+            desenharQuadrado(inimigos[i].x, inimigos[i].y, 1, 0, 0);
     }
 
-    glutSwapBuffers(); // Troca o buffer para atualizar a tela
+    glutSwapBuffers();
 }
 
-// Teclas direcionais (setas) para mover o jogador
+// Input
 void tecladoEspecial(int key, int x, int y) {
     switch (key) {
         case GLUT_KEY_UP: moverJogador(0, -1); break;
@@ -266,9 +248,8 @@ void tecladoEspecial(int key, int x, int y) {
     }
 }
 
-// Teclado normal: R para reiniciar, D para modo dev, ESC para sair
 void tecladoNormal(unsigned char key, int x, int y) {
-    if (key == 27) exit(0); // Tecla ESC sai do programa
+    if (key == 27) exit(0);
     else if (key == 'r' || key == 'R') {
         faseAtual = gameOver = gameWon = modoDesenvolvedor = 0;
         inicializarPosicoes();
@@ -281,23 +262,29 @@ void tecladoNormal(unsigned char key, int x, int y) {
     }
 }
 
-// Função principal: inicializa o jogo e configura o GLUT
+// Timer
+void timer(int v) {
+    moverInimigos();
+    glutTimerFunc(500, timer, 0);
+}
+
+// Função principal
 int main(int argc, char **argv) {
-    srand(time(NULL)); // Inicializa semente aleatória
-    inicializarPosicoes(); // Posição inicial do jogador
-    reiniciarInimigos();   // Inimigos em posições válidas
+    srand(time(NULL));
+    inicializarPosicoes();
+    reiniciarInimigos();
 
-    glutInit(&argc, argv); // Inicializa GLUT
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB); // Duplo buffer + RGB
-    glutInitWindowSize(MAP_SIZE * TILE_SIZE, MAP_SIZE * TILE_SIZE); // Tamanho da janela
-    glutCreateWindow("Labirinto Inteligente"); // Cria janela com título
-    gluOrtho2D(0, MAP_SIZE * TILE_SIZE, MAP_SIZE * TILE_SIZE, 0); // Projeção 2D
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowSize(MAP_SIZE * TILE_SIZE, MAP_SIZE * TILE_SIZE);
+    glutCreateWindow("Labirinto Inteligente");
+    gluOrtho2D(0, MAP_SIZE * TILE_SIZE, MAP_SIZE * TILE_SIZE, 0);
 
-    glutDisplayFunc(display); // Define função de desenho
-    glutSpecialFunc(tecladoEspecial); // Define entrada de teclas especiais
-    glutKeyboardFunc(tecladoNormal);  // Define entrada de teclas normais
-    glutTimerFunc(500, timer, 0);     // Inicia temporizador para inimigos
+    glutDisplayFunc(display);
+    glutSpecialFunc(tecladoEspecial);
+    glutKeyboardFunc(tecladoNormal);
+    glutTimerFunc(500, timer, 0);
 
-    glutMainLoop(); // Inicia o loop principal do GLUT
+    glutMainLoop();
     return 0;
 }
