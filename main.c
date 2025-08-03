@@ -130,13 +130,13 @@ void reiniciarInimigos() {
 }
 
 // Eventos de jogo
-void perderJogo() {
-    gameOver = 1;
+void vencerJogo() {
+    gameWon = 1;
     glutPostRedisplay();
 }
 
-void vencerJogo() {
-    gameWon = 1;
+void perderJogo() {
+    gameOver = 1;
     glutPostRedisplay();
 }
 
@@ -194,6 +194,12 @@ void moverInimigos() {
     if (verificarColisao()) perderJogo();
 
     glutPostRedisplay();
+}
+
+// Timer
+void timer(int v) {
+    moverInimigos();
+    glutTimerFunc(500, timer, 0);
 }
 
 // Rendering
@@ -261,13 +267,6 @@ void tecladoNormal(unsigned char key, int x, int y) {
         glutPostRedisplay();
     }
 }
-
-// Timer
-void timer(int v) {
-    moverInimigos();
-    glutTimerFunc(500, timer, 0);
-}
-
 // Função principal
 int main(int argc, char **argv) {
     srand(time(NULL));
